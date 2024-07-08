@@ -8,19 +8,18 @@ import com.theokanning.openai.service.OpenAiService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class GeneratorService {
 
     @Value("${openai.key}")
-    private String key;
+    private String KEY;
 
     private static final String GPT_VERSION = "gpt-4";
 
-    public List<String> generateCode(GeneratorRequestDTO requestDTO){
+    public String generateCode(GeneratorRequestDTO requestDTO){
         var completionRequest = ChatCompletionRequest
                 .builder()
                 .model(GPT_VERSION)
@@ -29,14 +28,15 @@ public class GeneratorService {
                         new ChatMessage(ChatMessageRole.SYSTEM.value(), requestDTO.getSystemPrompt())
                 ))
                 .build();
-        var service = new OpenAiService(key);
 
-        List<String> products = new ArrayList<>();
+        var service = new OpenAiService(KEY);
+
+        AtomicReference<String> response = new AtomicReference<>("");
         service
                 .createChatCompletion(completionRequest)
                 .getChoices()
-                .forEach(c -> products.add(c.getMessage().getContent()));
+                .forEach(c -> response.set(c.getMessage().getContent()));
 
-        return products;
+        return response.get();
     }
 }
